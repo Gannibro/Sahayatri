@@ -19,7 +19,7 @@ export default function Maps() {
       latitude: 27.7105,
       longitude: 85.3488,
     },
-    // Add more suggested locations here
+    // Add more suggested locations
   ];
 
   const handleRegionChange = (newRegion) => {
