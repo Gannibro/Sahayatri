@@ -6,7 +6,6 @@ const Verification = () => {
   const [verificationCode, setVerificationCode] = useState('');
 
   const handleContinue = () => {
-    // Implement verification logic here
     console.log('Continue pressed with code:', verificationCode);
     if (verificationCode == 1234){
         return (
