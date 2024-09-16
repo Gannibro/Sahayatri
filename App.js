@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import SplashScreen from './SplashScreenView';
 import HomeScreen from './HomeScreen';
 import VerificationScreen from './Verification';
-import Maps from './Maps';  // Add this line to import the Maps component
+import Maps from './Maps';  
 import { useEffect, useState } from 'react';
 
 export default function App() {
