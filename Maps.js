@@ -18,6 +18,7 @@ export default function Maps() {
   const [currentPlace, setCurrentPlace] = useState('Kathmandu');
   const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
+  const [destination, setDestination] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -65,6 +66,7 @@ export default function Maps() {
 
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
+    setDestination(location);
     setRegion({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -115,8 +117,17 @@ export default function Maps() {
         )}
       </MapView>
       
-      <View style={styles.currentLocationBox}>
-        <Text style={styles.currentLocationText}>{currentPlace}</Text>
+      <View style={styles.locationBoxesContainer}>
+        <View style={styles.locationBox}>
+          <Text style={styles.locationBoxTitle}>Current Location</Text>
+          <Text style={styles.locationBoxText}>{currentPlace}</Text>
+        </View>
+        <View style={styles.locationBox}>
+          <Text style={styles.locationBoxTitle}>Destination</Text>
+          <Text style={styles.locationBoxText}>
+            {destination ? destination.name : 'Not set'}
+          </Text>
+        </View>
       </View>
 
       <TouchableOpacity style={styles.menuButton}>
@@ -171,23 +182,34 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  currentLocationBox: {
+  locationBoxesContainer: {
     position: 'absolute',
     top: 50,
-    left: 80,
-    right: 30,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  locationBox: {
+    flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     padding: 10,
     borderRadius: 5,
     elevation: 5,
+    marginHorizontal: 5,
   },
-  currentLocationText: {
-    fontSize: 16,
+  locationBoxTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'gray',
+  },
+  locationBoxText: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   menuButton: {
     position: 'absolute',
-    top: 48,
+    top: 110,
     left: 20,
     backgroundColor: 'white',
     padding: 10,
