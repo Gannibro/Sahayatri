@@ -3,19 +3,14 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList } from 'r
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { suggestedLocations } from './suggestedLocations';
+import { Locations } from './locations';
 
 export default function Maps() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [region, setRegion] = useState({
-    latitude: 27.7172,
-    longitude: 85.3240,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
+  const [region, setRegion] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [filteredLocations, setFilteredLocations] = useState([]);
-  const [currentPlace, setCurrentPlace] = useState('Kathmandu');
+  const [currentPlace, setCurrentPlace] = useState('Fetching location...');
   const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
   const [destination, setDestination] = useState(null);
@@ -27,13 +22,16 @@ export default function Maps() {
 
       if (status === 'granted') {
         await updateUserLocation();
+      } else {
+        console.log('Location permission not granted');
+        setCurrentPlace('Location unavailable');
       }
     })();
   }, []);
 
   useEffect(() => {
     if (searchQuery.length > 0) {
-      const filtered = suggestedLocations.filter(
+      const filtered = Locations.filter(
         location => location.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredLocations(filtered);
@@ -43,17 +41,27 @@ export default function Maps() {
   }, [searchQuery]);
 
   const updateUserLocation = async () => {
-    let location = await Location.getCurrentPositionAsync({});
-    setUserLocation({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    });
-    setRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
-    });
+    try {
+      let location = await Location.getCurrentPositionAsync({});
+      const newRegion = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      };
+      setUserLocation(newRegion);
+      setRegion(newRegion);
+      
+      const closest = findClosestLocation(newRegion);
+      if (closest) {
+        setCurrentPlace(closest.name);
+      } else {
+        setCurrentPlace('Current Location');
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setCurrentPlace('Location error');
+    }
   };
 
   const handleRegionChange = (newRegion) => {
@@ -79,7 +87,7 @@ export default function Maps() {
   };
 
   const findClosestLocation = (region) => {
-    return suggestedLocations.reduce((closest, location) => {
+    return Locations.reduce((closest, location) => {
       const distance = Math.sqrt(
         Math.pow(location.latitude - region.latitude, 2) +
         Math.pow(location.longitude - region.longitude, 2)
@@ -89,6 +97,14 @@ export default function Maps() {
         : closest;
     }, null);
   };
+
+  if (!region) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading map...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -106,13 +122,6 @@ export default function Maps() {
               latitude: selectedLocation.latitude, 
               longitude: selectedLocation.longitude 
             }} 
-          />
-        )}
-        {userLocation && (
-          <Marker 
-            coordinate={userLocation}
-            title="You are here"
-            pinColor="blue"
           />
         )}
       </MapView>
