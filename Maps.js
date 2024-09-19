@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { suggestedLocations } from './suggestedLocations';
 
 export default function Maps() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,33 +13,121 @@ export default function Maps() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [currentPlace, setCurrentPlace] = useState('Kathmandu');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
 
-  const suggestedLocations = [
-    {
-      name: 'Kathmandu University',
-      address: '28 Kilo, Banepa, Kavre',
-      latitude: 27.7105,
-      longitude: 85.3488,
-    },
-    // Add more suggested locations
-  ];
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted');
+
+      if (status === 'granted') {
+        await updateUserLocation();
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.length > 0) {
+      const filtered = suggestedLocations.filter(
+        location => location.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredLocations(filtered);
+    } else {
+      setFilteredLocations([]);
+    }
+  }, [searchQuery]);
+
+  const updateUserLocation = async () => {
+    let location = await Location.getCurrentPositionAsync({});
+    setUserLocation({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    });
+    setRegion({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    });
+  };
 
   const handleRegionChange = (newRegion) => {
     setRegion(newRegion);
+    const closest = findClosestLocation(newRegion);
+    if (closest) {
+      setCurrentPlace(closest.name);
+    }
+  };
+
+  const handleLocationSelect = (location) => {
+    setSelectedLocation(location);
+    setRegion({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      latitudeDelta: 0.0122,
+      longitudeDelta: 0.0121,
+    });
+    setCurrentPlace(location.name);
+    setSearchQuery('');
+    setFilteredLocations([]);
+  };
+
+  const findClosestLocation = (region) => {
+    return suggestedLocations.reduce((closest, location) => {
+      const distance = Math.sqrt(
+        Math.pow(location.latitude - region.latitude, 2) +
+        Math.pow(location.longitude - region.longitude, 2)
+      );
+      return closest == null || distance < closest.distance
+        ? { ...location, distance }
+        : closest;
+    }, null);
   };
 
   return (
     <View style={styles.container}>
       <MapView
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
         region={region}
         onRegionChangeComplete={handleRegionChange}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
       >
-        <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} />
+        {selectedLocation && (
+          <Marker 
+            coordinate={{ 
+              latitude: selectedLocation.latitude, 
+              longitude: selectedLocation.longitude 
+            }} 
+          />
+        )}
+        {userLocation && (
+          <Marker 
+            coordinate={userLocation}
+            title="You are here"
+            pinColor="blue"
+          />
+        )}
       </MapView>
       
+      <View style={styles.currentLocationBox}>
+        <Text style={styles.currentLocationText}>{currentPlace}</Text>
+      </View>
+
       <TouchableOpacity style={styles.menuButton}>
         <Feather name="menu" size={24} color="black" />
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.gpsButton} 
+        onPress={updateUserLocation}
+      >
+        <Feather name="navigation" size={24} color="black" />
       </TouchableOpacity>
       
       <View style={styles.searchContainer}>
@@ -51,17 +141,24 @@ export default function Maps() {
           />
         </View>
         
-        {suggestedLocations.map((location, index) => (
-          <TouchableOpacity key={index} style={styles.suggestionItem}>
-            <View style={styles.iconContainer}>
-              <Feather name="clock" size={20} color="gray" />
-            </View>
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationName}>{location.name}</Text>
-              <Text style={styles.locationAddress}>{location.address}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <FlatList
+          data={filteredLocations}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={styles.suggestionItem}
+              onPress={() => handleLocationSelect(item)}
+            >
+              <View style={styles.iconContainer}>
+                <Feather name="map-pin" size={20} color="gray" />
+              </View>
+              <View style={styles.locationInfo}>
+                <Text style={styles.locationName}>{item.name}</Text>
+                <Text style={styles.locationAddress}>{item.address}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
       </View>
     </View>
   );
@@ -74,10 +171,33 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  currentLocationBox: {
+    position: 'absolute',
+    top: 50,
+    left: 80,
+    right: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 10,
+    borderRadius: 5,
+    elevation: 5,
+  },
+  currentLocationText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   menuButton: {
     position: 'absolute',
-    top: 40,
+    top: 48,
     left: 20,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 30,
+    elevation: 5,
+  },
+  gpsButton: {
+    position: 'absolute',
+    bottom: 140,
+    right: 20,
     backgroundColor: 'white',
     padding: 10,
     borderRadius: 30,
@@ -92,6 +212,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    maxHeight: '50%',
   },
   searchBar: {
     flexDirection: 'row',
