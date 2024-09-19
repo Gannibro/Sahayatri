@@ -42,7 +42,7 @@ export default function Maps() {
 
   const updateUserLocation = async () => {
     try {
-      let location = await Location.getCurrentPositionAsync({});
+      let location = await Location.getCurrentPositionAsync({}); // Users current location
       const newRegion = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
