@@ -4,6 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Locations } from './locations';
+import RouteMap from './RouteMap';
 
 export default function Maps() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,6 +117,7 @@ export default function Maps() {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
+
         {selectedLocation && (
           <Marker 
             coordinate={{ 
@@ -125,6 +127,11 @@ export default function Maps() {
           />
         )}
       </MapView>
+
+      <RouteMap 
+        userLocation={userLocation}
+        destination={destination}
+      />
       
       <View style={styles.locationBoxesContainer}>
         <View style={styles.locationBox}>
