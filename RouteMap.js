@@ -37,8 +37,36 @@ const RouteMap = ({ destination }) => {
   };
 
   const calculateRoute = async () => {
-    // add routing service API here
-    // for now, it creates straight line
+    const apiKey = 'API_KEY'; 
+    const apiUrl = 'API_URL';
+    
+    try {
+      const response = await fetch(`${apiUrl}?api_key=${apiKey}&start=${currentLocation.longitude},${currentLocation.latitude}&end=${destination.longitude},${destination.latitude}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+  
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const routeGeometry = data.features[0].geometry.coordinates;
+        const newRouteCoordinates = routeGeometry.map(coord => ({
+          longitude: coord[0],
+          latitude: coord[1]
+        }));
+        setRouteCoordinates(newRouteCoordinates);
+      } else {
+        console.error('No route found');
+        fallbackToStraightLine();
+      }
+    } catch (error) {
+      console.error('Error calculating route:', error);
+      fallbackToStraightLine();
+    }
+  };
+
+  const fallbackToStraightLine = () => {
     const newRouteCoordinates = [
       currentLocation,
       { latitude: destination.latitude, longitude: destination.longitude },
