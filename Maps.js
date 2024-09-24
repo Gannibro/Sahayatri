@@ -146,9 +146,11 @@ export default function Maps() {
         </View>
       </View>
 
+      {/*}
       <TouchableOpacity style={styles.menuButton}>
         <Feather name="menu" size={24} color="black" />
       </TouchableOpacity>
+      */}
 
       <TouchableOpacity 
         style={styles.gpsButton} 
